@@ -6,6 +6,8 @@ import android.content.Intent
 
 class BootReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context?, intent: Intent?) {
-    // Boot restoration will be handled in section 4
+    if (context == null || intent?.action != Intent.ACTION_BOOT_COMPLETED) return
+    val store = BlockerStore.getInstance(context)
+    store.stopDraining()
   }
 }
