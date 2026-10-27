@@ -24,6 +24,21 @@ export const Colors = {
   },
 } as const;
 
+export const KaizenTheme = {
+  bg: '#0A0A0B',
+  surface: '#141416',
+  surfaceRaised: '#1D1D20',
+  border: '#2A2A2E',
+  text: '#F2EFEA',
+  textMuted: '#9A968F',
+  redDeep: '#7A1F24',
+  redPrimary: '#C8372D',
+  redBright: '#E5584B',
+  redSoft: '#F08A80',
+  redTint: '#3A1517',
+  success: '#6FBF8F',
+} as const;
+
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
