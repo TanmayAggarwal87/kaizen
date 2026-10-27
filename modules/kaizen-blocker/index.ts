@@ -38,7 +38,10 @@ export function requestIgnoreBatteryOptimizations(): void {
 }
 
 export function addStatusListener(listener: (params: { remainingMs: number }) => void) {
-  return KaizenBlockerModule.addListener('onStatusChanged', listener);
+  if (typeof KaizenBlockerModule.addListener === 'function') {
+    return KaizenBlockerModule.addListener('onStatusChanged', listener);
+  }
+  return { remove: () => {} };
 }
 
 export * from './src/KaizenBlocker.types';

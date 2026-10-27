@@ -85,8 +85,6 @@ class KaizenAccessibilityService : AccessibilityService() {
 
   private fun enforceBlock() {
     store.isCurrentlyBlocking = true
-    performGlobalAction(GLOBAL_ACTION_HOME)
-
     val blockIntent = Intent(this, BlockActivity::class.java).apply {
       flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION
     }

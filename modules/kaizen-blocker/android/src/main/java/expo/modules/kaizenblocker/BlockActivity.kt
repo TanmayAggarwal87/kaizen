@@ -6,180 +6,197 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.view.Gravity
-import android.view.MotionEvent
-import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 
 class BlockActivity : Activity() {
   private lateinit var store: BlockerStore
-  private var emergencyTimer: CountDownTimer? = null
-  private lateinit var emergencyButton: Button
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     store = BlockerStore.getInstance(this)
 
+    val density = resources.displayMetrics.density
+    val dp = { value: Int -> (value * density).toInt() }
+
     val root = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
-      gravity = Gravity.CENTER
-      setBackgroundColor(Color.parseColor("#0A0A0B"))
-      val pad = (24 * resources.displayMetrics.density).toInt()
+      gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
+      setBackgroundColor(Color.parseColor("#131314"))
+      val pad = dp(24)
       setPadding(pad, pad, pad, pad)
     }
 
-    val brandTitle = TextView(this).apply {
-      text = "KAIZEN"
+    // Protocol Active Pill
+    val protocolPill = LinearLayout(this).apply {
+      orientation = LinearLayout.HORIZONTAL
+      gravity = Gravity.CENTER
+      background = GradientDrawable().apply {
+        setColor(Color.parseColor("#1C1B1C"))
+        cornerRadius = 6 * density
+      }
+      setPadding(dp(10), dp(4), dp(10), dp(4))
+      layoutParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+      ).apply {
+        bottomMargin = dp(28)
+      }
+    }
+
+    val dot = TextView(this).apply {
+      text = "● "
+      setTextColor(Color.parseColor("#C8372D"))
+      textSize = 10f
+    }
+    val protocolText = TextView(this).apply {
+      text = "PROTOCOL ACTIVE  ·  00:00"
+      setTextColor(Color.parseColor("#9A968F"))
+      textSize = 10f
+      typeface = Typeface.MONOSPACE
+    }
+    protocolPill.addView(dot)
+    protocolPill.addView(protocolText)
+
+    // Shield Emblem / Restricted Icon
+    val emblem = TextView(this).apply {
+      text = "⛨"
+      textSize = 44f
+      setTextColor(Color.parseColor("#C8372D"))
+      gravity = Gravity.CENTER
+      layoutParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+      ).apply {
+        bottomMargin = dp(16)
+      }
+    }
+
+    // Headline
+    val headline = TextView(this).apply {
+      text = "No time earned"
       textSize = 28f
       setTextColor(Color.parseColor("#F2EFEA"))
       typeface = Typeface.DEFAULT_BOLD
       gravity = Gravity.CENTER
+      layoutParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+      ).apply {
+        bottomMargin = dp(8)
+      }
     }
 
-    val brandSubtitle = TextView(this).apply {
-      text = "改善"
+    // Subtitle
+    val subtitle = TextView(this).apply {
+      text = "You have 0 minutes of screen time remaining."
       textSize = 14f
       setTextColor(Color.parseColor("#9A968F"))
       gravity = Gravity.CENTER
-      setPadding(0, 0, 0, (32 * resources.displayMetrics.density).toInt())
+      layoutParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+      ).apply {
+        bottomMargin = dp(28)
+      }
     }
 
-    val warningCard = LinearLayout(this).apply {
+    // Discipline Ritual Card
+    val card = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
-      gravity = Gravity.CENTER
       background = GradientDrawable().apply {
-        setColor(Color.parseColor("#141416"))
-        cornerRadius = 16 * resources.displayMetrics.density
-        setStroke((1 * resources.displayMetrics.density).toInt(), Color.parseColor("#2A2A2E"))
+        setColor(Color.parseColor("#1C1B1C"))
+        cornerRadius = 10 * density
+        setStroke(dp(1), Color.parseColor("#2A2A2E"))
       }
-      val cardPad = (24 * resources.displayMetrics.density).toInt()
-      setPadding(cardPad, cardPad, cardPad, cardPad)
+      setPadding(dp(16), dp(14), dp(16), dp(14))
       layoutParams = LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT,
         LinearLayout.LayoutParams.WRAP_CONTENT
       ).apply {
-        bottomMargin = (32 * resources.displayMetrics.density).toInt()
+        bottomMargin = dp(32)
       }
     }
 
-    val messageView = TextView(this).apply {
-      text = "No time earned"
-      textSize = 20f
-      setTextColor(Color.parseColor("#F2EFEA"))
+    val cardTitle = TextView(this).apply {
+      text = "DISCIPLINE BALANCE"
+      textSize = 11f
+      setTextColor(Color.parseColor("#C8372D"))
       typeface = Typeface.DEFAULT_BOLD
-      gravity = Gravity.CENTER
-      setPadding(0, 0, 0, (8 * resources.displayMetrics.density).toInt())
+      setPadding(0, 0, 0, dp(4))
     }
-
-    val remainingView = TextView(this).apply {
-      val mins = (store.remainingMs / 1000) / 60
-      val secs = (store.remainingMs / 1000) % 60
-      text = String.format("Remaining balance: %02dm %02ds", mins, secs)
-      textSize = 14f
-      setTextColor(Color.parseColor("#9A968F"))
-      gravity = Gravity.CENTER
-    }
-
-    warningCard.addView(messageView)
-    warningCard.addView(remainingView)
-
-    val buttonGoHome = Button(this).apply {
-      text = "Go Home"
+    val cardMsg = TextView(this).apply {
+      text = "Complete a daily ritual in KAIZEN to earn your cognitive allowance."
+      textSize = 13f
       setTextColor(Color.parseColor("#F2EFEA"))
-      textSize = 15f
+      setLineSpacing(0f, 1.2f)
+    }
+    card.addView(cardTitle)
+    card.addView(cardMsg)
+
+    // Primary Action: Open KAIZEN
+    val buttonOpenKaizen = Button(this).apply {
+      text = "Open KAIZEN  →"
+      setTextColor(Color.parseColor("#FFECE9"))
+      textSize = 14f
       typeface = Typeface.DEFAULT_BOLD
       background = GradientDrawable().apply {
         setColor(Color.parseColor("#C8372D"))
-        cornerRadius = 10 * resources.displayMetrics.density
+        cornerRadius = 8 * density
       }
       layoutParams = LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT,
-        (48 * resources.displayMetrics.density).toInt()
+        dp(48)
       ).apply {
-        bottomMargin = (12 * resources.displayMetrics.density).toInt()
-      }
-      setOnClickListener {
-        navigateHome()
-      }
-    }
-
-    val buttonOpenKaizen = Button(this).apply {
-      text = "Open kaizen"
-      setTextColor(Color.parseColor("#F2EFEA"))
-      textSize = 15f
-      background = GradientDrawable().apply {
-        setColor(Color.parseColor("#1D1D20"))
-        cornerRadius = 10 * resources.displayMetrics.density
-        setStroke((1 * resources.displayMetrics.density).toInt(), Color.parseColor("#2A2A2E"))
-      }
-      layoutParams = LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT,
-        (48 * resources.displayMetrics.density).toInt()
-      ).apply {
-        bottomMargin = (24 * resources.displayMetrics.density).toInt()
+        bottomMargin = dp(10)
       }
       setOnClickListener {
         openApp()
       }
     }
 
-    emergencyButton = Button(this).apply {
-      text = "Hold to Emergency Disable (5s)"
+    // Secondary Action: Go Home
+    val buttonGoHome = Button(this).apply {
+      text = "Go Home"
       setTextColor(Color.parseColor("#9A968F"))
-      textSize = 12f
+      textSize = 13f
+      typeface = Typeface.DEFAULT_BOLD
       background = GradientDrawable().apply {
-        setColor(Color.TRANSPARENT)
+        setColor(Color.parseColor("#1C1B1C"))
+        cornerRadius = 8 * density
+        setStroke(dp(1), Color.parseColor("#2A2A2E"))
       }
-      setOnTouchListener { _, event ->
-        when (event.action) {
-          MotionEvent.ACTION_DOWN -> {
-            startEmergencyCountdown()
-            true
-          }
-          MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-            cancelEmergencyCountdown()
-            true
-          }
-          else -> false
-        }
+      layoutParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        dp(44)
+      ).apply {
+        bottomMargin = dp(16)
+      }
+      setOnClickListener {
+        navigateHome()
       }
     }
 
-    root.addView(brandTitle)
-    root.addView(brandSubtitle)
-    root.addView(warningCard)
-    root.addView(buttonGoHome)
+    // Helper text
+    val footnote = TextView(this).apply {
+      text = "Emergency controls live in the Pressure tab inside KAIZEN."
+      textSize = 11f
+      setTextColor(Color.parseColor("#5A413D"))
+      gravity = Gravity.CENTER
+    }
+
+    root.addView(protocolPill)
+    root.addView(emblem)
+    root.addView(headline)
+    root.addView(subtitle)
+    root.addView(card)
     root.addView(buttonOpenKaizen)
-    root.addView(emergencyButton)
+    root.addView(buttonGoHome)
+    root.addView(footnote)
 
     setContentView(root)
-  }
-
-  private fun startEmergencyCountdown() {
-    emergencyTimer?.cancel()
-    emergencyTimer = object : CountDownTimer(5000, 1000) {
-      override fun onTick(millisUntilFinished: Long) {
-        val seconds = (millisUntilFinished / 1000) + 1
-        emergencyButton.text = "Keep holding: $seconds s..."
-        emergencyButton.setTextColor(Color.parseColor("#E5584B"))
-      }
-
-      override fun onFinish() {
-        store.blockerEnabled = false
-        emergencyButton.text = "Blocker Disabled"
-        finish()
-      }
-    }.start()
-  }
-
-  private fun cancelEmergencyCountdown() {
-    emergencyTimer?.cancel()
-    emergencyTimer = null
-    emergencyButton.text = "Hold to Emergency Disable (5s)"
-    emergencyButton.setTextColor(Color.parseColor("#9A968F"))
   }
 
   private fun navigateHome() {
@@ -203,10 +220,5 @@ class BlockActivity : Activity() {
 
   override fun onBackPressed() {
     navigateHome()
-  }
-
-  override fun onDestroy() {
-    emergencyTimer?.cancel()
-    super.onDestroy()
   }
 }
