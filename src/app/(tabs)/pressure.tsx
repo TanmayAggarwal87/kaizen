@@ -7,25 +7,32 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import { KaizenTheme } from '@/constants/theme';
 import { useKaizen } from '@/context/KaizenContext';
 
-export default function PressureScreen() {
-  const { status, tasks, toggleBlocker } = useKaizen();
-  const [holding, setHolding] = useState(false);
-  const [countdown, setCountdown] = useState(5.0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+const HOLD_DURATION_SECONDS = 5.0;
 
-  const completedCount = tasks.filter((t) => t.completed).length;
-  const minutesRemaining = Math.max(0, Math.floor(status.remainingMs / (1000 * 60)));
+export default function PressureScreen() {
+  const {
+    status,
+    toggleBlocker,
+    completedCount,
+    totalTaskCount,
+    remainingMinutes,
+  } = useKaizen();
+
+  const [holding, setHolding] = useState(false);
+  const [countdown, setCountdown] = useState(HOLD_DURATION_SECONDS);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startHold = () => {
     setHolding(true);
-    setCountdown(5.0);
+    setCountdown(HOLD_DURATION_SECONDS);
     const start = Date.now();
     timerRef.current = setInterval(() => {
       const elapsed = (Date.now() - start) / 1000;
-      const left = Math.max(0, 5.0 - elapsed);
+      const left = Math.max(0, HOLD_DURATION_SECONDS - elapsed);
       setCountdown(parseFloat(left.toFixed(1)));
       if (left <= 0) {
         if (timerRef.current) clearInterval(timerRef.current);
@@ -40,7 +47,7 @@ export default function PressureScreen() {
       clearInterval(timerRef.current);
     }
     setHolding(false);
-    setCountdown(5.0);
+    setCountdown(HOLD_DURATION_SECONDS);
   };
 
   useEffect(() => {
@@ -49,14 +56,19 @@ export default function PressureScreen() {
     };
   }, []);
 
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, ((HOLD_DURATION_SECONDS - countdown) / HOLD_DURATION_SECONDS) * 100)
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.brandTitle}>EMERGENCY OVERRIDE</Text>
-        <Text style={styles.headerTitle}>Can you handle the pressure?</Text>
+        <Text style={styles.brandTitle}>DISARM PROTOCOL</Text>
+        <Text style={styles.headerTitle}>The Pressure Valve</Text>
         <Text style={styles.headerSub}>
-          The blocker only works if you let it. Tapping out turns it off until you deliberately resume.
+          The limit holds only while you uphold it. Disarming suspends enforcement until you deliberately resume.
         </Text>
       </View>
 
@@ -66,25 +78,25 @@ export default function PressureScreen() {
       >
         {/* Stake Metrics Card */}
         <View style={styles.stakeCard}>
-          <Text style={styles.cardHeader}>TODAY'S PROGRESS AT STAKE</Text>
+          <Text style={styles.cardHeader}>TODAY'S DISCIPLINE AT STAKE</Text>
           <View style={styles.metricsRow}>
             <View style={styles.metricCol}>
               <Text style={styles.metricVal}>
-                {completedCount}<Text style={styles.metricSub}>/{tasks.length}</Text>
+                {completedCount}<Text style={styles.metricSub}>/{totalTaskCount}</Text>
               </Text>
               <Text style={styles.metricLabel}>Tasks Done</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.metricCol}>
               <Text style={styles.metricVal}>
-                {minutesRemaining}<Text style={styles.metricSub}>m</Text>
+                {remainingMinutes}<Text style={styles.metricSub}>m</Text>
               </Text>
-              <Text style={styles.metricLabel}>Unspent Time</Text>
+              <Text style={styles.metricLabel}>Balance Left</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.metricCol}>
               <Text style={styles.metricVal}>
-                14<Text style={styles.metricSub}>d</Text>
+                12<Text style={styles.metricSub}>d</Text>
               </Text>
               <Text style={styles.metricLabel}>Discipline</Text>
             </View>
@@ -93,56 +105,57 @@ export default function PressureScreen() {
 
         {/* Philosophy Note */}
         <View style={styles.quoteCard}>
-          <Text style={styles.quoteIcon}>👁</Text>
+          <AntDesign name="info-circle" size={15} color={KaizenTheme.outline} />
           <Text style={styles.quoteText}>
-            No penalties. No shaming. Just your agreement with yourself.
+            Discipline is choosing between what you want now and what you want most. There are no penalties, only your agreement with yourself.
           </Text>
         </View>
 
-        {/* Hold to Tap Out / Resume Mechanism */}
+        {/* Hold to Disarm / Resume Mechanism */}
         <View style={styles.holdSection}>
           <Pressable
             style={[
               styles.holdButton,
+              status.blockerEnabled ? styles.holdButtonArmed : styles.holdButtonDisarmed,
               holding && styles.holdButtonActive,
-              !status.blockerEnabled && styles.holdButtonResumed,
             ]}
             onPressIn={startHold}
             onPressOut={cancelHold}
           >
-            <Text style={styles.holdIcon}>
-              {status.blockerEnabled ? '⚡' : '🔒'}
-            </Text>
+            {/* Progress Track Arc Indicator */}
+            {holding && (
+              <View
+                style={[
+                  styles.progressIndicator,
+                  {
+                    borderColor: status.blockerEnabled ? KaizenTheme.redBright : KaizenTheme.outline,
+                    opacity: 0.3 + (progressPercent / 100) * 0.7,
+                  },
+                ]}
+              />
+            )}
+
+            <AntDesign
+              name={status.blockerEnabled ? 'thunderbolt' : 'unlock'}
+              size={34}
+              color={status.blockerEnabled ? KaizenTheme.redPrimary : KaizenTheme.textMuted}
+              style={{ marginBottom: 6 }}
+            />
             <Text style={styles.holdLabel}>
               {holding
-                ? `${countdown}s`
+                ? `${countdown.toFixed(1)}s`
                 : status.blockerEnabled
-                ? 'Hold to tap out'
-                : 'Hold to resume'}
+                ? 'Hold to Disarm'
+                : 'Hold to Re-Arm'}
             </Text>
             <Text style={styles.holdInstructions}>
               {status.blockerEnabled
-                ? 'PRESS & HOLD FOR 5 SECONDS TO DISARM'
-                : 'PRESS & HOLD FOR 5 SECONDS TO RE-ARM'}
+                ? 'PRESS & HOLD FOR 5 SECONDS'
+                : 'PRESS & HOLD TO RESUME'}
             </Text>
           </Pressable>
           <Text style={styles.holdWarning}>
-            Releasing early cancels the protocol.
-          </Text>
-        </View>
-
-        {/* Status Log Box */}
-        <View style={styles.statusBox}>
-          <View style={styles.statusBoxHeader}>
-            <Text style={styles.statusDot}>●</Text>
-            <Text style={styles.statusTitle}>
-              {status.blockerEnabled ? 'SHIELD ARMED' : 'BLOCKER DISENGAGED'}
-            </Text>
-          </View>
-          <Text style={styles.statusDesc}>
-            {status.blockerEnabled
-              ? 'Distraction applications are locked behind your daily cognitive discipline credits.'
-              : 'You have paused your focus. Regain control when you are ready to resume.'}
+            Releasing early cancels the override protocol.
           </Text>
         </View>
       </ScrollView>
@@ -181,6 +194,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: KaizenTheme.textMuted,
     marginTop: 4,
+    lineHeight: 17,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -241,10 +255,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 24,
   },
-  quoteIcon: {
-    fontSize: 16,
-    color: KaizenTheme.redPrimary,
-  },
   quoteText: {
     flex: 1,
     fontSize: 12,
@@ -257,33 +267,37 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   holdButton: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 204,
+    height: 204,
+    borderRadius: 102,
     backgroundColor: KaizenTheme.surfaceContainerLow,
-    borderWidth: 3,
-    borderColor: KaizenTheme.redPrimary,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
+    position: 'relative',
+  },
+  holdButtonArmed: {
+    borderColor: KaizenTheme.redPrimary,
+  },
+  holdButtonDisarmed: {
+    borderColor: KaizenTheme.border,
   },
   holdButtonActive: {
-    backgroundColor: KaizenTheme.redTint,
-    borderColor: KaizenTheme.redBright,
-    transform: [{ scale: 0.96 }],
+    backgroundColor: KaizenTheme.surfaceContainer,
+    transform: [{ scale: 0.97 }],
   },
-  holdButtonResumed: {
-    borderColor: KaizenTheme.success,
-  },
-  holdIcon: {
-    fontSize: 28,
-    marginBottom: 6,
+  progressIndicator: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 106,
+    borderWidth: 4,
   },
   holdLabel: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: KaizenTheme.text,
     letterSpacing: 0.5,
@@ -300,33 +314,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: KaizenTheme.textMuted,
     marginTop: 12,
-  },
-  statusBox: {
-    backgroundColor: KaizenTheme.surfaceContainerLow,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: KaizenTheme.border,
-    padding: 16,
-  },
-  statusBoxHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  statusDot: {
-    color: KaizenTheme.redPrimary,
-    fontSize: 12,
-  },
-  statusTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: KaizenTheme.text,
-    letterSpacing: 1,
-  },
-  statusDesc: {
-    fontSize: 12,
-    color: KaizenTheme.textMuted,
-    lineHeight: 18,
   },
 });

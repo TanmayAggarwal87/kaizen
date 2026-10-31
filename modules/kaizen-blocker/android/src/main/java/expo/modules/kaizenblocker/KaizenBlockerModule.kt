@@ -66,9 +66,9 @@ class KaizenBlockerModule : Module() {
     }
 
     Function("grantCredits") { ms: Double ->
-      val validMs = ms.toLong().coerceAtLeast(0L).coerceAtMost(BlockerStore.MAX_CREDIT_MS)
+      val validMs = ms.toLong().coerceAtLeast(-BlockerStore.MAX_CREDIT_MS).coerceAtMost(BlockerStore.MAX_CREDIT_MS)
       val store = BlockerStore.getInstance(context)
-      store.grantCredits(validMs)
+      store.adjustCredits(validMs)
     }
 
     Function("clearCredits") {

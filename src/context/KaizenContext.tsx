@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { AppState } from 'react-native';
+import { safeStorage } from '@/utils/storage';
 import {
   getStatus,
   setBlockerEnabled,
@@ -46,20 +47,28 @@ interface KaizenContextType {
   toggleBlocker: () => void;
   openAccessibility: () => void;
   requestBatteryExemption: () => void;
+  // Computed helpers for consistent metrics
+  earnedMinutes: number;
+  spentMinutes: number;
+  remainingMinutes: number;
+  completedCount: number;
+  totalTaskCount: number;
+  masteryPercent: number;
+  totalPotentialMinutes: number;
 }
 
 const defaultTasks: DisciplineTask[] = [
   {
     id: '1',
     title: 'Deep Work Session (90 min)',
-    category: 'CONCENTRATION',
+    category: 'FOCUS',
     rewardMinutes: 15,
     time: '08:00 AM',
     completed: true,
   },
   {
     id: '2',
-    title: 'Morning Cold Exposure & Run',
+    title: 'Morning Cold Run & Movement',
     category: 'VITALITY',
     rewardMinutes: 10,
     time: '06:30 AM',
@@ -67,24 +76,24 @@ const defaultTasks: DisciplineTask[] = [
   },
   {
     id: '3',
-    title: 'Read Philosophy & Journal',
-    category: 'INTROSPECTION',
+    title: 'Philosophy Reading & Journal',
+    category: 'MINDFULNESS',
     rewardMinutes: 5,
     time: '12:15 PM',
     completed: true,
   },
   {
     id: '4',
-    title: 'Review Architecture Spec',
-    category: 'ENGINEERING',
+    title: 'Architecture Spec Review',
+    category: 'CRAFT',
     rewardMinutes: 9,
     time: 'NEXT UP',
     completed: false,
   },
   {
     id: '5',
-    title: 'Zero Inbox & Shutdown',
-    category: 'CLOSURE',
+    title: 'Zero Inbox & Evening Shutdown',
+    category: 'RECOVERY',
     rewardMinutes: 6,
     time: 'EVENING',
     completed: false,
@@ -101,25 +110,63 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
     remainingMs: 27 * 60 * 1000,
     activeApp: null,
     isBlocking: false,
-    blockedApps: ['com.instagram.android', 'com.twitter.android', 'com.google.android.youtube', 'com.reddit.frontpage'],
+    blockedApps: [
+      'com.instagram.android',
+      'com.twitter.android',
+      'com.google.android.youtube',
+      'com.reddit.frontpage',
+    ],
   });
 
   const [apps, setApps] = useState<AppInfo[]>([]);
   const [tasks, setTasks] = useState<DisciplineTask[]>(defaultTasks);
-  const [rewardMode, setRewardMode] = useState<RewardMode>('earn_as_you_go');
-  const [defaultRewardMinutes, setDefaultRewardMinutes] = useState(9);
+  const [rewardMode, setRewardModeState] = useState<RewardMode>('earn_as_you_go');
+  const [defaultRewardMinutes, setDefaultRewardMinutesState] = useState(9);
   const [dailyResetTime] = useState('04:00 AM');
-  const [creditCarryover, setCreditCarryover] = useState(false);
+  const [creditCarryover, setCreditCarryoverState] = useState(false);
+
+  // Restore saved state from safe persistent storage
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const savedTasks = await safeStorage.getItem('@kaizen_tasks');
+        if (mounted && savedTasks) {
+          const parsed = JSON.parse(savedTasks);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTasks(parsed);
+          }
+        }
+        const savedMode = await safeStorage.getItem('@kaizen_reward_mode');
+        if (mounted && savedMode) setRewardModeState(savedMode as RewardMode);
+        const savedReward = await safeStorage.getItem('@kaizen_default_reward');
+        if (mounted && savedReward) setDefaultRewardMinutesState(parseInt(savedReward, 10));
+        const savedCarryover = await safeStorage.getItem('@kaizen_carryover');
+        if (mounted && savedCarryover !== null) setCreditCarryoverState(savedCarryover === 'true');
+      } catch {}
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const refreshStatus = useCallback(() => {
     try {
       const current = getStatus();
       if (current) {
+        if (!current.blockedApps || current.blockedApps.length === 0) {
+          const defaults = [
+            'com.instagram.android',
+            'com.twitter.android',
+            'com.google.android.youtube',
+            'com.reddit.frontpage',
+          ];
+          setBlockedApps(defaults);
+          current.blockedApps = defaults;
+        }
         setStatus(current);
       }
-    } catch {
-      // Running outside dev client
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -159,6 +206,26 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refreshStatus]);
 
+  const updateTasks = (newTasks: DisciplineTask[]) => {
+    setTasks(newTasks);
+    safeStorage.setItem('@kaizen_tasks', JSON.stringify(newTasks)).catch(() => {});
+  };
+
+  const setRewardMode = (mode: RewardMode) => {
+    setRewardModeState(mode);
+    safeStorage.setItem('@kaizen_reward_mode', mode).catch(() => {});
+  };
+
+  const setDefaultRewardMinutes = (mins: number) => {
+    setDefaultRewardMinutesState(mins);
+    safeStorage.setItem('@kaizen_default_reward', mins.toString()).catch(() => {});
+  };
+
+  const setCreditCarryover = (val: boolean) => {
+    setCreditCarryoverState(val);
+    safeStorage.setItem('@kaizen_carryover', val ? 'true' : 'false').catch(() => {});
+  };
+
   const toggleBlockedApp = (packageName: string) => {
     const isBlocked = status.blockedApps.includes(packageName);
     const updated = isBlocked
@@ -171,24 +238,23 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleTask = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === id) {
-          const nextCompleted = !t.completed;
-          const deltaMs = t.rewardMinutes * 60 * 1000;
-          try {
-            if (nextCompleted) {
-              grantCredits(deltaMs);
-            } else {
-              grantCredits(-deltaMs);
-            }
-          } catch {}
-          return { ...t, completed: nextCompleted };
-        }
-        return t;
-      })
-    );
-    setTimeout(refreshStatus, 100);
+    const nextTasks = tasks.map((t) => {
+      if (t.id === id) {
+        const nextCompleted = !t.completed;
+        const deltaMs = t.rewardMinutes * 60 * 1000;
+        try {
+          if (nextCompleted) {
+            grantCredits(deltaMs);
+          } else {
+            grantCredits(-deltaMs);
+          }
+        } catch {}
+        return { ...t, completed: nextCompleted };
+      }
+      return t;
+    });
+    updateTasks(nextTasks);
+    setTimeout(refreshStatus, 80);
   };
 
   const addTask = (title: string, category: string, rewardMinutes: number) => {
@@ -200,11 +266,13 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
       time: 'SCHEDULED',
       completed: false,
     };
-    setTasks((prev) => [...prev, newTask]);
+    const updated = [...tasks, newTask];
+    updateTasks(updated);
   };
 
   const deleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    const updated = tasks.filter((t) => t.id !== id);
+    updateTasks(updated);
   };
 
   const grantManualCredits = (minutes: number) => {
@@ -229,6 +297,33 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
     setStatus((prev) => ({ ...prev, blockerEnabled: next }));
   };
 
+  // Computed metrics
+  const earnedMinutes = useMemo(() => {
+    return tasks
+      .filter((t) => t.completed)
+      .reduce((acc, t) => acc + t.rewardMinutes, 0);
+  }, [tasks]);
+
+  const remainingMinutes = Math.max(0, Math.floor(status.remainingMs / 60000));
+
+  const spentMinutes = useMemo(() => {
+    return Math.max(0, earnedMinutes - remainingMinutes);
+  }, [earnedMinutes, remainingMinutes]);
+
+  const completedCount = useMemo(() => {
+    return tasks.filter((t) => t.completed).length;
+  }, [tasks]);
+
+  const totalTaskCount = tasks.length;
+
+  const masteryPercent = useMemo(() => {
+    return totalTaskCount > 0 ? Math.round((completedCount / totalTaskCount) * 100) : 0;
+  }, [completedCount, totalTaskCount]);
+
+  const totalPotentialMinutes = useMemo(() => {
+    return tasks.reduce((acc, t) => acc + t.rewardMinutes, 0);
+  }, [tasks]);
+
   return (
     <KaizenContext.Provider
       value={{
@@ -252,6 +347,13 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
         toggleBlocker,
         openAccessibility: openAccessibilitySettings,
         requestBatteryExemption: requestIgnoreBatteryOptimizations,
+        earnedMinutes,
+        spentMinutes,
+        remainingMinutes,
+        completedCount,
+        totalTaskCount,
+        masteryPercent,
+        totalPotentialMinutes,
       }}
     >
       {children}

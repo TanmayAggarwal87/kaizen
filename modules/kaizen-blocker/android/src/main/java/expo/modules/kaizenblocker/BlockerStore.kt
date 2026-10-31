@@ -29,7 +29,21 @@ class BlockerStore(context: Context) {
     }
 
   var blockedPackages: Set<String>
-    get() = prefs.getStringSet(KEY_BLOCKED_PACKAGES, emptySet()) ?: emptySet()
+    get() {
+      val set = prefs.getStringSet(KEY_BLOCKED_PACKAGES, null)
+      if (set == null) {
+        val defaults = setOf(
+          "com.instagram.android",
+          "com.twitter.android",
+          "com.google.android.youtube",
+          "com.reddit.frontpage",
+          "com.zhiliaoapp.musically"
+        )
+        prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, defaults).apply()
+        return defaults
+      }
+      return set
+    }
     set(value) {
       prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, HashSet(value)).apply()
       notifyChanged()
@@ -92,13 +106,17 @@ class BlockerStore(context: Context) {
     }
   }
 
-  fun grantCredits(additionalMs: Long) {
+  fun adjustCredits(deltaMs: Long) {
     synchronized(lock) {
       val current = remainingMs
-      val updated = (current + additionalMs.coerceAtLeast(0L)).coerceAtMost(MAX_CREDIT_MS)
+      val updated = (current + deltaMs).coerceAtLeast(0L).coerceAtMost(MAX_CREDIT_MS)
       prefs.edit().putLong(KEY_REMAINING_MS, updated).apply()
       notifyChanged()
     }
+  }
+
+  fun grantCredits(additionalMs: Long) {
+    adjustCredits(additionalMs)
   }
 
   fun clearCredits() {

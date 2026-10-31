@@ -43,5 +43,6 @@ example
 # generated native folders
 /ios
 /android
+/.agents/*
 
 todo.md

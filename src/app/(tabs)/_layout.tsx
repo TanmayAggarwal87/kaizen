@@ -1,14 +1,27 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Text, StyleSheet, View } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import { KaizenTheme } from '@/constants/theme';
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8);
+  const tabHeight = 54 + bottomPadding;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: tabHeight,
+            paddingBottom: bottomPadding,
+          },
+        ],
+        tabBarItemStyle: styles.tabItem,
         tabBarActiveTintColor: KaizenTheme.redPrimary,
         tabBarInactiveTintColor: KaizenTheme.textMuted,
         tabBarLabelStyle: styles.tabLabel,
@@ -19,7 +32,7 @@ export default function TabsLayout() {
         options={{
           title: 'Today',
           tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>◉</Text>
+            <AntDesign name="dashboard" size={19} color={String(color)} />
           ),
         }}
       />
@@ -28,7 +41,7 @@ export default function TabsLayout() {
         options={{
           title: 'Tasks',
           tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>☑</Text>
+            <AntDesign name="check-square" size={19} color={String(color)} />
           ),
         }}
       />
@@ -37,7 +50,7 @@ export default function TabsLayout() {
         options={{
           title: 'Apps',
           tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>⊞</Text>
+            <AntDesign name="appstore" size={19} color={String(color)} />
           ),
         }}
       />
@@ -46,7 +59,7 @@ export default function TabsLayout() {
         options={{
           title: 'Pressure',
           tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>⚡</Text>
+            <AntDesign name="fire" size={19} color={String(color)} />
           ),
         }}
       />
@@ -55,7 +68,7 @@ export default function TabsLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color }) => (
-            <Text style={[styles.tabIcon, { color }]}>⚙</Text>
+            <AntDesign name="setting" size={19} color={String(color)} />
           ),
         }}
       />
@@ -65,21 +78,20 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: KaizenTheme.surfaceContainerLow,
-    borderTopColor: KaizenTheme.border,
+    backgroundColor: KaizenTheme.surfaceContainerLowest,
+    borderTopColor: KaizenTheme.borderSubtle,
     borderTopWidth: 1,
-    height: 60,
-    paddingBottom: 6,
-    paddingTop: 4,
+    paddingTop: 8,
+    elevation: 8,
+  },
+  tabItem: {
+    paddingTop: 2,
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-  },
-  tabIcon: {
-    fontSize: 18,
-    fontWeight: '700',
+    marginTop: 2,
   },
 });

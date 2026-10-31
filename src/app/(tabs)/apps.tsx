@@ -8,11 +8,12 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { KaizenTheme } from '@/constants/theme';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { KaizenTheme, HitSlop } from '@/constants/theme';
 import { useKaizen } from '@/context/KaizenContext';
 
 export default function AppsScreen() {
-  const { apps, status, toggleBlockedApp } = useKaizen();
+  const { apps, status, toggleBlockedApp, remainingMinutes } = useKaizen();
   const [search, setSearch] = useState('');
 
   const blockedList = useMemo(() => {
@@ -32,19 +33,17 @@ export default function AppsScreen() {
     );
   };
 
-  const filteredBlocked = blockedList.filter(filterFn);
-  const filteredUnblocked = unblockedList.filter(filterFn);
-
-  const minutesRemaining = Math.max(0, Math.floor(status.remainingMs / (1000 * 60)));
+  const filteredBlocked = useMemo(() => blockedList.filter(filterFn), [blockedList, search]);
+  const filteredUnblocked = useMemo(() => unblockedList.filter(filterFn), [unblockedList, search]);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.brandTitle}>GATE ACCESS</Text>
-        <Text style={styles.headerTitle}>Covered Apps</Text>
+        <Text style={styles.brandTitle}>APPLICATION GATE</Text>
+        <Text style={styles.headerTitle}>Guarded Applications</Text>
         <Text style={styles.headerSub}>
-          All selected apps share one single disciplined time balance.
+          Monitored applications share your single disciplined allowance balance.
         </Text>
       </View>
 
@@ -55,33 +54,48 @@ export default function AppsScreen() {
         {/* Collective Bank Status */}
         <View style={styles.bankCard}>
           <View style={styles.bankLeft}>
-            <Text style={styles.bankIcon}>⌛</Text>
+            <View style={styles.bankIconContainer}>
+              <AntDesign name="clock-circle" size={16} color={KaizenTheme.outline} />
+            </View>
             <View>
-              <Text style={styles.bankTitle}>Collective Bank</Text>
-              <Text style={styles.bankDesc}>{minutesRemaining}m available today</Text>
+              <Text style={styles.bankTitle}>Collective Allowance Bank</Text>
+              <Text style={styles.bankDesc}>{remainingMinutes}m available today</Text>
             </View>
           </View>
           <View style={styles.bankBadge}>
             <Text style={styles.bankBadgeText}>
-              {status.blockedApps.length} SYNCED
+              {status.blockedApps.length} GUARDED
             </Text>
           </View>
         </View>
 
-        {/* Search Input */}
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search apps or packages..."
-          placeholderTextColor={KaizenTheme.textMuted}
-          value={search}
-          onChangeText={setSearch}
-          autoCapitalize="none"
-        />
+        {/* Search Input with Clear Button */}
+        <View style={styles.searchContainer}>
+          <AntDesign name="search" size={14} color={KaizenTheme.textMuted} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name or package..."
+            placeholderTextColor={KaizenTheme.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {search.length > 0 && (
+            <Pressable
+              onPress={() => setSearch('')}
+              hitSlop={HitSlop.standard}
+              style={styles.searchClearBtn}
+            >
+              <AntDesign name="close-circle" size={14} color={KaizenTheme.textMuted} />
+            </Pressable>
+          )}
+        </View>
 
-        {/* Monitored Apps Section */}
+        {/* Guarded Apps Section */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>
-            COVERED BY TIME BALANCE ({filteredBlocked.length})
+            GUARDED BY TIME ALLOWANCE ({filteredBlocked.length})
           </Text>
           <View style={styles.tierBadge}>
             <Text style={styles.tierText}>STRICT TIER</Text>
@@ -90,12 +104,18 @@ export default function AppsScreen() {
 
         <View style={styles.cardGroup}>
           {filteredBlocked.length === 0 ? (
-            <Text style={styles.emptyText}>No covered apps selected</Text>
+            <View style={styles.emptyContainer}>
+              <AntDesign name="info-circle" size={18} color={KaizenTheme.textMuted} style={{ marginBottom: 6 }} />
+              <Text style={styles.emptyTitle}>No Guarded Apps</Text>
+              <Text style={styles.emptyText}>
+                Select applications from the list below to set daily time limits.
+              </Text>
+            </View>
           ) : (
             filteredBlocked.map((app) => (
               <Pressable
                 key={app.packageName}
-                style={styles.appRow}
+                style={({ pressed }) => [styles.appRow, pressed && styles.rowPressed]}
                 onPress={() => toggleBlockedApp(app.packageName)}
               >
                 <View style={styles.appAvatar}>
@@ -110,31 +130,36 @@ export default function AppsScreen() {
                   </Text>
                 </View>
                 <View style={styles.lockStatusButton}>
-                  <Text style={styles.lockStatusText}>LOCKED</Text>
+                  <AntDesign name="lock" size={10} color={KaizenTheme.text} style={{ marginRight: 4 }} />
+                  <Text style={styles.lockStatusText}>GUARDED</Text>
                 </View>
               </Pressable>
             ))
           )}
         </View>
 
-        {/* Unmonitored Apps Section */}
+        {/* Unguarded Apps Section */}
         <View style={[styles.sectionHeaderRow, styles.topSpacer]}>
           <Text style={styles.sectionTitle}>
-            OTHER INSTALLED APPS ({filteredUnblocked.length})
+            AVAILABLE APPLICATIONS ({filteredUnblocked.length})
           </Text>
           <View style={[styles.tierBadge, styles.unmonitoredTier]}>
-            <Text style={styles.unmonitoredText}>UNMONITORED</Text>
+            <Text style={styles.unmonitoredText}>OPEN ACCESS</Text>
           </View>
         </View>
 
         <View style={styles.cardGroup}>
           {filteredUnblocked.length === 0 ? (
-            <Text style={styles.emptyText}>No apps found</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {search.length > 0 ? 'No matching applications found' : 'All detected apps are guarded'}
+              </Text>
+            </View>
           ) : (
             filteredUnblocked.slice(0, 40).map((app) => (
               <Pressable
                 key={app.packageName}
-                style={styles.appRow}
+                style={({ pressed }) => [styles.appRow, pressed && styles.rowPressed]}
                 onPress={() => toggleBlockedApp(app.packageName)}
               >
                 <View style={[styles.appAvatar, styles.unmonitoredAvatar]}>
@@ -149,7 +174,8 @@ export default function AppsScreen() {
                   </Text>
                 </View>
                 <View style={styles.addButton}>
-                  <Text style={styles.addButtonText}>+ ADD</Text>
+                  <AntDesign name="plus" size={10} color={KaizenTheme.textMuted} style={{ marginRight: 3 }} />
+                  <Text style={styles.addButtonText}>GUARD</Text>
                 </View>
               </Pressable>
             ))
@@ -191,6 +217,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: KaizenTheme.textMuted,
     marginTop: 4,
+    lineHeight: 17,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -213,8 +240,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  bankIcon: {
-    fontSize: 18,
+  bankIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: KaizenTheme.surfaceContainerLowest,
+    borderWidth: 1,
+    borderColor: KaizenTheme.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bankTitle: {
     fontSize: 13,
@@ -223,7 +257,7 @@ const styles = StyleSheet.create({
   },
   bankDesc: {
     fontSize: 11,
-    color: KaizenTheme.redPrimary,
+    color: KaizenTheme.textMuted,
     marginTop: 2,
   },
   bankBadge: {
@@ -240,16 +274,28 @@ const styles = StyleSheet.create({
     color: KaizenTheme.redBright,
     letterSpacing: 0.5,
   },
-  searchInput: {
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: KaizenTheme.surfaceContainerLow,
     borderWidth: 1,
     borderColor: KaizenTheme.border,
     borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    minHeight: 44,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
     color: KaizenTheme.text,
     fontSize: 13,
-    marginBottom: 16,
+    paddingVertical: 10,
+  },
+  searchClearBtn: {
+    padding: 4,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -302,9 +348,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: KaizenTheme.border,
   },
+  rowPressed: {
+    backgroundColor: KaizenTheme.surfaceContainer,
+  },
   appAvatar: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 6,
     backgroundColor: KaizenTheme.redTint,
     borderWidth: 1,
@@ -314,7 +363,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   appAvatarText: {
-    color: KaizenTheme.redPrimary,
+    color: KaizenTheme.redBright,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -340,9 +389,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   lockStatusButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: KaizenTheme.redDeep,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 4,
   },
   lockStatusText: {
@@ -352,9 +403,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: KaizenTheme.surfaceContainerHigh,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: KaizenTheme.border,
@@ -364,10 +417,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
+  emptyContainer: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    color: KaizenTheme.text,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
   emptyText: {
     color: KaizenTheme.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    paddingVertical: 20,
+    lineHeight: 16,
   },
 });

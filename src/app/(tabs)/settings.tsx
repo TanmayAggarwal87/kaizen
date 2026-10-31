@@ -8,7 +8,8 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { KaizenTheme } from '@/constants/theme';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { KaizenTheme, HitSlop } from '@/constants/theme';
 import { useKaizen } from '@/context/KaizenContext';
 
 export default function SettingsScreen() {
@@ -31,10 +32,10 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.brandTitle}>SYSTEM CORE</Text>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.brandTitle}>SYSTEM PROTOCOLS</Text>
+        <Text style={styles.headerTitle}>Preferences & Core</Text>
         <Text style={styles.headerSub}>
-          System configuration, gating protocol, and blocking daemon state.
+          Allowance mechanics, daily renewal cycle, and background enforcement health.
         </Text>
       </View>
 
@@ -44,14 +45,15 @@ export default function SettingsScreen() {
       >
         {/* Section 01: Reward Mode */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>SECTION 01 // REWARD MODE</Text>
+          <Text style={styles.sectionTitle}>SECTION 01 // ALLOWANCE MECHANISM</Text>
         </View>
 
         <View style={styles.cardGroup}>
           <Pressable
-            style={[
+            style={({ pressed }) => [
               styles.modeCard,
               rewardMode === 'earn_as_you_go' && styles.modeCardSelected,
+              pressed && styles.rowPressed,
             ]}
             onPress={() => setRewardMode('earn_as_you_go')}
           >
@@ -62,7 +64,9 @@ export default function SettingsScreen() {
                     styles.radio,
                     rewardMode === 'earn_as_you_go' && styles.radioActive,
                   ]}
-                />
+                >
+                  {rewardMode === 'earn_as_you_go' && <View style={styles.radioInner} />}
+                </View>
                 <Text style={styles.modeTitle}>Earn as you go</Text>
               </View>
               <View style={styles.defaultBadge}>
@@ -70,14 +74,15 @@ export default function SettingsScreen() {
               </View>
             </View>
             <Text style={styles.modeDesc}>
-              Earn screen allowance immediately following task completion. Incremental autonomy.
+              Allowance is credited immediately following task completion. Incremental autonomy.
             </Text>
           </Pressable>
 
           <Pressable
-            style={[
+            style={({ pressed }) => [
               styles.modeCard,
               rewardMode === 'unlock_after_all' && styles.modeCardSelected,
+              pressed && styles.rowPressed,
             ]}
             onPress={() => setRewardMode('unlock_after_all')}
           >
@@ -88,7 +93,9 @@ export default function SettingsScreen() {
                     styles.radio,
                     rewardMode === 'unlock_after_all' && styles.radioActive,
                   ]}
-                />
+                >
+                  {rewardMode === 'unlock_after_all' && <View style={styles.radioInner} />}
+                </View>
                 <Text style={styles.modeTitle}>Unlock after all tasks</Text>
               </View>
               <View style={[styles.defaultBadge, styles.asceticBadge]}>
@@ -96,7 +103,7 @@ export default function SettingsScreen() {
               </View>
             </View>
             <Text style={styles.modeDesc}>
-              Distraction apps remain sealed until every planned discipline block is accounted for.
+              Applications remain sealed until every scheduled discipline block is finished.
             </Text>
           </Pressable>
         </View>
@@ -111,39 +118,43 @@ export default function SettingsScreen() {
         <View style={styles.cardGroup}>
           <View style={styles.settingRow}>
             <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Default reward per task</Text>
-              <Text style={styles.settingSub}>Added to pool per checked item</Text>
+              <Text style={styles.settingLabel}>Default reward per Tasks</Text>
+              <Text style={styles.settingSub}>Added to allowance balance per checked item</Text>
             </View>
             <View style={styles.stepper}>
               <Pressable
-                style={styles.stepBtn}
+                style={({ pressed }) => [styles.stepBtn, pressed && styles.stepBtnPressed]}
                 onPress={() => setDefaultRewardMinutes(Math.max(1, defaultRewardMinutes - 1))}
+                hitSlop={HitSlop.small}
               >
-                <Text style={styles.stepBtnText}>−</Text>
+                <AntDesign name="minus" size={13} color={KaizenTheme.text} />
               </Pressable>
               <Text style={styles.stepVal}>{defaultRewardMinutes} min</Text>
               <Pressable
-                style={styles.stepBtn}
+                style={({ pressed }) => [styles.stepBtn, pressed && styles.stepBtnPressed]}
                 onPress={() => setDefaultRewardMinutes(defaultRewardMinutes + 1)}
+                hitSlop={HitSlop.small}
               >
-                <Text style={styles.stepBtnText}>+</Text>
+                <AntDesign name="plus" size={13} color={KaizenTheme.text} />
               </Pressable>
             </View>
           </View>
 
           <View style={styles.settingRow}>
             <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Daily reset time</Text>
-              <Text style={styles.settingSub}>Disciplines clear; cycle renews</Text>
+              <Text style={styles.settingLabel}>Daily renewal cycle</Text>
+              <Text style={styles.settingSub}>Protocols clear and cycle renews</Text>
             </View>
-            <Text style={styles.staticValue}>{dailyResetTime}</Text>
+            <View style={styles.staticBadge}>
+              <Text style={styles.staticValue}>{dailyResetTime}</Text>
+            </View>
           </View>
 
           <View style={[styles.settingRow, styles.noBorder]}>
             <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Credit carryover</Text>
+              <Text style={styles.settingLabel}>Allowance carryover</Text>
               <Text style={styles.settingSub}>
-                Unspent allowance strictly perishes at reset.
+                Unspent minutes expire strictly at daily reset when disabled.
               </Text>
             </View>
             <Switch
@@ -158,79 +169,91 @@ export default function SettingsScreen() {
         {/* Section 03: Permissions & Health Checklist */}
         <View style={[styles.sectionHeaderRow, styles.topSpacer]}>
           <Text style={styles.sectionTitle}>
-            SECTION 03 // PERMISSIONS & HEALTH CHECKLIST
+            SECTION 03 // PERMISSIONS & SYSTEM HEALTH
           </Text>
         </View>
 
         <View style={styles.cardGroup}>
-          <Pressable style={styles.settingRow} onPress={openAccessibility}>
+          <Pressable
+            style={({ pressed }) => [styles.settingRow, pressed && styles.rowPressed]}
+            onPress={openAccessibility}
+          >
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>Accessibility Service</Text>
-              <Text style={styles.settingSub}>Window & app launch detection</Text>
+              <Text style={styles.settingSub}>App window detection and guard enforcement</Text>
             </View>
-            <View
-              style={[
-                styles.healthBadge,
-                status.accessibilityEnabled ? styles.healthBadgeOn : styles.healthBadgeOff,
-              ]}
-            >
-              <Text
+            <View style={styles.permissionActionRow}>
+              <View
                 style={[
-                  styles.healthBadgeText,
-                  status.accessibilityEnabled ? styles.healthBadgeTextOn : styles.healthBadgeTextOff,
+                  styles.healthBadge,
+                  status.accessibilityEnabled ? styles.healthBadgeOn : styles.healthBadgeOff,
                 ]}
               >
-                {status.accessibilityEnabled ? 'ACTIVE' : 'ENABLE'}
-              </Text>
+                <Text
+                  style={[
+                    styles.healthBadgeText,
+                    status.accessibilityEnabled ? styles.healthBadgeTextOn : styles.healthBadgeTextOff,
+                  ]}
+                >
+                  {status.accessibilityEnabled ? 'ACTIVE' : 'ACTION NEEDED'}
+                </Text>
+              </View>
+              <AntDesign name="right" size={12} color={KaizenTheme.textMuted} style={{ marginLeft: 6 }} />
             </View>
           </Pressable>
 
-          <Pressable style={[styles.settingRow, styles.noBorder]} onPress={requestBatteryExemption}>
+          <Pressable
+            style={({ pressed }) => [styles.settingRow, styles.noBorder, pressed && styles.rowPressed]}
+            onPress={requestBatteryExemption}
+          >
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>Battery Optimization</Text>
-              <Text style={styles.settingSub}>Prevent OS background suspension</Text>
+              <Text style={styles.settingSub}>Prevent OS from terminating background guard</Text>
             </View>
-            <View
-              style={[
-                styles.healthBadge,
-                status.batteryUnrestricted ? styles.healthBadgeOn : styles.healthBadgeOff,
-              ]}
-            >
-              <Text
+            <View style={styles.permissionActionRow}>
+              <View
                 style={[
-                  styles.healthBadgeText,
-                  status.batteryUnrestricted ? styles.healthBadgeTextOn : styles.healthBadgeTextOff,
+                  styles.healthBadge,
+                  status.batteryUnrestricted ? styles.healthBadgeOn : styles.healthBadgeOff,
                 ]}
               >
-                {status.batteryUnrestricted ? 'EXEMPT' : 'FIX'}
-              </Text>
+                <Text
+                  style={[
+                    styles.healthBadgeText,
+                    status.batteryUnrestricted ? styles.healthBadgeTextOn : styles.healthBadgeTextOff,
+                  ]}
+                >
+                  {status.batteryUnrestricted ? 'EXEMPT' : 'ACTION NEEDED'}
+                </Text>
+              </View>
+              <AntDesign name="right" size={12} color={KaizenTheme.textMuted} style={{ marginLeft: 6 }} />
             </View>
           </Pressable>
         </View>
 
-        {/* Debug Utilities */}
+        {/* Diagnostic Utilities */}
         <View style={[styles.sectionHeaderRow, styles.topSpacer]}>
-          <Text style={styles.sectionTitle}>DEBUG CREDITS (TESTING)</Text>
+          <Text style={styles.sectionTitle}>SECTION 04 // DIAGNOSTIC ALLOWANCE (TESTING)</Text>
         </View>
 
         <View style={styles.debugButtonsRow}>
           <Pressable
-            style={styles.debugBtn}
-            onPress={() => grantManualCredits(2)}
+            style={({ pressed }) => [styles.debugBtn, pressed && styles.debugBtnPressed]}
+            onPress={() => grantManualCredits(5)}
           >
-            <Text style={styles.debugBtnText}>+2 Min</Text>
+            <Text style={styles.debugBtnText}>+5 Min</Text>
           </Pressable>
           <Pressable
-            style={styles.debugBtn}
-            onPress={() => grantManualCredits(10)}
+            style={({ pressed }) => [styles.debugBtn, pressed && styles.debugBtnPressed]}
+            onPress={() => grantManualCredits(15)}
           >
-            <Text style={styles.debugBtnText}>+10 Min</Text>
+            <Text style={styles.debugBtnText}>+15 Min</Text>
           </Pressable>
           <Pressable
-            style={[styles.debugBtn, styles.clearBtn]}
+            style={({ pressed }) => [styles.debugBtn, styles.clearBtn, pressed && styles.debugBtnPressed]}
             onPress={clearAllCredits}
           >
-            <Text style={[styles.debugBtnText, styles.clearBtnText]}>Clear</Text>
+            <Text style={[styles.debugBtnText, styles.clearBtnText]}>Reset Pool</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -269,6 +292,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: KaizenTheme.textMuted,
     marginTop: 4,
+    lineHeight: 17,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -302,6 +326,9 @@ const styles = StyleSheet.create({
   modeCardSelected: {
     backgroundColor: KaizenTheme.surfaceContainer,
   },
+  rowPressed: {
+    backgroundColor: KaizenTheme.surfaceContainerHigh,
+  },
   modeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -314,14 +341,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   radio: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: KaizenTheme.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   radioActive: {
     borderColor: KaizenTheme.redPrimary,
+  },
+  radioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: KaizenTheme.redPrimary,
   },
   modeTitle: {
@@ -351,7 +385,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: KaizenTheme.textMuted,
     lineHeight: 18,
-    marginLeft: 24,
+    marginLeft: 26,
   },
   settingRow: {
     flexDirection: 'row',
@@ -361,6 +395,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: KaizenTheme.border,
+    minHeight: 52,
   },
   noBorder: {
     borderBottomWidth: 0,
@@ -378,6 +413,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: KaizenTheme.textMuted,
     marginTop: 2,
+    lineHeight: 16,
   },
   stepper: {
     flexDirection: 'row',
@@ -386,26 +422,39 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: KaizenTheme.border,
+    minHeight: 36,
   },
   stepBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  stepBtnText: {
-    color: KaizenTheme.text,
-    fontSize: 14,
-    fontWeight: '700',
+  stepBtnPressed: {
+    backgroundColor: KaizenTheme.surfaceContainerHigh,
   },
   stepVal: {
     fontSize: 12,
     fontWeight: '600',
     color: KaizenTheme.text,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
+  },
+  staticBadge: {
+    backgroundColor: KaizenTheme.surfaceContainerLowest,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: KaizenTheme.border,
   },
   staticValue: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: KaizenTheme.redBright,
+  },
+  permissionActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   healthBadge: {
     paddingHorizontal: 8,
@@ -413,9 +462,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   healthBadgeOn: {
-    backgroundColor: '#0E1F14',
+    backgroundColor: KaizenTheme.surfaceContainerLowest,
     borderWidth: 1,
-    borderColor: '#1E3326',
+    borderColor: KaizenTheme.border,
   },
   healthBadgeOff: {
     backgroundColor: KaizenTheme.redTint,
@@ -428,7 +477,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   healthBadgeTextOn: {
-    color: KaizenTheme.success,
+    color: KaizenTheme.text,
   },
   healthBadgeTextOff: {
     color: KaizenTheme.redBright,
@@ -444,7 +493,12 @@ const styles = StyleSheet.create({
     borderColor: KaizenTheme.border,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 8,
+    minHeight: 44,
+  },
+  debugBtnPressed: {
+    backgroundColor: KaizenTheme.surfaceContainerHigh,
   },
   debugBtnText: {
     color: KaizenTheme.text,
