@@ -57,48 +57,7 @@ interface KaizenContextType {
   totalPotentialMinutes: number;
 }
 
-const defaultTasks: DisciplineTask[] = [
-  {
-    id: '1',
-    title: 'Deep Work Session (90 min)',
-    category: 'FOCUS',
-    rewardMinutes: 15,
-    time: '08:00 AM',
-    completed: true,
-  },
-  {
-    id: '2',
-    title: 'Morning Cold Run & Movement',
-    category: 'VITALITY',
-    rewardMinutes: 10,
-    time: '06:30 AM',
-    completed: true,
-  },
-  {
-    id: '3',
-    title: 'Philosophy Reading & Journal',
-    category: 'MINDFULNESS',
-    rewardMinutes: 5,
-    time: '12:15 PM',
-    completed: true,
-  },
-  {
-    id: '4',
-    title: 'Architecture Spec Review',
-    category: 'CRAFT',
-    rewardMinutes: 9,
-    time: 'NEXT UP',
-    completed: false,
-  },
-  {
-    id: '5',
-    title: 'Zero Inbox & Evening Shutdown',
-    category: 'RECOVERY',
-    rewardMinutes: 6,
-    time: 'EVENING',
-    completed: false,
-  },
-];
+const defaultTasks: DisciplineTask[] = [];
 
 const KaizenContext = createContext<KaizenContextType | undefined>(undefined);
 
@@ -107,7 +66,7 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
     blockerEnabled: true,
     accessibilityEnabled: false,
     batteryUnrestricted: false,
-    remainingMs: 27 * 60 * 1000,
+    remainingMs: 0,
     activeApp: null,
     isBlocking: false,
     blockedApps: [
@@ -119,7 +78,7 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [apps, setApps] = useState<AppInfo[]>([]);
-  const [tasks, setTasks] = useState<DisciplineTask[]>(defaultTasks);
+  const [tasks, setTasks] = useState<DisciplineTask[]>([]);
   const [rewardMode, setRewardModeState] = useState<RewardMode>('earn_as_you_go');
   const [defaultRewardMinutes, setDefaultRewardMinutesState] = useState(9);
   const [dailyResetTime] = useState('04:00 AM');
@@ -133,8 +92,15 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
         const savedTasks = await safeStorage.getItem('@kaizen_tasks');
         if (mounted && savedTasks) {
           const parsed = JSON.parse(savedTasks);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setTasks(parsed);
+          if (Array.isArray(parsed)) {
+            // Filter out old hardcoded mock tasks with IDs '1'..'5'
+            const realTasks = parsed.filter(
+              (t: DisciplineTask) => !['1', '2', '3', '4', '5'].includes(t.id)
+            );
+            setTasks(realTasks);
+            if (realTasks.length !== parsed.length) {
+              safeStorage.setItem('@kaizen_tasks', JSON.stringify(realTasks)).catch(() => {});
+            }
           }
         }
         const savedMode = await safeStorage.getItem('@kaizen_reward_mode');
@@ -200,7 +166,14 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') {
+        refreshStatus();
+      }
+    }, 1000);
+
     return () => {
+      clearInterval(interval);
       sub.remove();
       appStateSub.remove();
     };
@@ -214,6 +187,26 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
   const setRewardMode = (mode: RewardMode) => {
     setRewardModeState(mode);
     safeStorage.setItem('@kaizen_reward_mode', mode).catch(() => {});
+    try {
+      if (mode === 'unlock_after_all') {
+        const allDone = tasks.length > 0 && tasks.every((t) => t.completed);
+        clearCredits();
+        if (allDone) {
+          const totalMs = tasks.reduce((acc, t) => acc + t.rewardMinutes, 0) * 60 * 1000;
+          grantCredits(totalMs);
+        }
+      } else {
+        // Switching to earn_as_you_go: credit whatever tasks are currently completed
+        const earnedMs = tasks
+          .filter((t) => t.completed)
+          .reduce((acc, t) => acc + t.rewardMinutes, 0) * 60 * 1000;
+        clearCredits();
+        if (earnedMs > 0) {
+          grantCredits(earnedMs);
+        }
+      }
+    } catch {}
+    setTimeout(refreshStatus, 80);
   };
 
   const setDefaultRewardMinutes = (mins: number) => {
@@ -238,21 +231,32 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleTask = (id: string) => {
-    const nextTasks = tasks.map((t) => {
-      if (t.id === id) {
-        const nextCompleted = !t.completed;
-        const deltaMs = t.rewardMinutes * 60 * 1000;
-        try {
-          if (nextCompleted) {
-            grantCredits(deltaMs);
-          } else {
-            grantCredits(-deltaMs);
-          }
-        } catch {}
-        return { ...t, completed: nextCompleted };
+    const target = tasks.find((t) => t.id === id);
+    if (!target) return;
+    const nextCompleted = !target.completed;
+    const nextTasks = tasks.map((t) =>
+      t.id === id ? { ...t, completed: nextCompleted } : t
+    );
+
+    try {
+      if (rewardMode === 'earn_as_you_go') {
+        const deltaMs = target.rewardMinutes * 60 * 1000;
+        if (nextCompleted) {
+          grantCredits(deltaMs);
+        } else {
+          grantCredits(-deltaMs);
+        }
+      } else {
+        // unlock_after_all: only grant when ALL tasks are completed
+        const allDone = nextTasks.length > 0 && nextTasks.every((t) => t.completed);
+        clearCredits();
+        if (allDone) {
+          const totalMs = nextTasks.reduce((acc, t) => acc + t.rewardMinutes, 0) * 60 * 1000;
+          grantCredits(totalMs);
+        }
       }
-      return t;
-    });
+    } catch {}
+
     updateTasks(nextTasks);
     setTimeout(refreshStatus, 80);
   };
@@ -267,12 +271,37 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
       completed: false,
     };
     const updated = [...tasks, newTask];
+
+    // If in unlock_after_all mode, adding an uncompleted task locks apps again
+    if (rewardMode === 'unlock_after_all') {
+      try {
+        clearCredits();
+      } catch {}
+      setTimeout(refreshStatus, 80);
+    }
+
     updateTasks(updated);
   };
 
   const deleteTask = (id: string) => {
+    const target = tasks.find((t) => t.id === id);
     const updated = tasks.filter((t) => t.id !== id);
+
+    try {
+      if (rewardMode === 'earn_as_you_go' && target?.completed) {
+        grantCredits(-target.rewardMinutes * 60 * 1000);
+      } else if (rewardMode === 'unlock_after_all') {
+        const allDone = updated.length > 0 && updated.every((t) => t.completed);
+        clearCredits();
+        if (allDone) {
+          const totalMs = updated.reduce((acc, t) => acc + t.rewardMinutes, 0) * 60 * 1000;
+          grantCredits(totalMs);
+        }
+      }
+    } catch {}
+
     updateTasks(updated);
+    setTimeout(refreshStatus, 80);
   };
 
   const grantManualCredits = (minutes: number) => {
@@ -299,12 +328,16 @@ export function KaizenProvider({ children }: { children: React.ReactNode }) {
 
   // Computed metrics
   const earnedMinutes = useMemo(() => {
+    if (rewardMode === 'unlock_after_all') {
+      const allDone = tasks.length > 0 && tasks.every((t) => t.completed);
+      return allDone ? tasks.reduce((acc, t) => acc + t.rewardMinutes, 0) : 0;
+    }
     return tasks
       .filter((t) => t.completed)
       .reduce((acc, t) => acc + t.rewardMinutes, 0);
-  }, [tasks]);
+  }, [tasks, rewardMode]);
 
-  const remainingMinutes = Math.max(0, Math.floor(status.remainingMs / 60000));
+  const remainingMinutes = Math.max(0, Math.ceil(status.remainingMs / 60000));
 
   const spentMinutes = useMemo(() => {
     return Math.max(0, earnedMinutes - remainingMinutes);

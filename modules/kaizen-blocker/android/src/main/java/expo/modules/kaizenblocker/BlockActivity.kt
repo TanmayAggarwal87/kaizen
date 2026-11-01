@@ -221,4 +221,11 @@ class BlockActivity : Activity() {
   override fun onBackPressed() {
     navigateHome()
   }
+
+  override fun onDestroy() {
+    if (::store.isInitialized) {
+      store.isCurrentlyBlocking = false
+    }
+    super.onDestroy()
+  }
 }

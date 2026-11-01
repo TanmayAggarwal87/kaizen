@@ -91,10 +91,6 @@ export default function TasksScreen() {
                 +{earnedMinutes}m focused screen-time earned
               </Text>
             </View>
-            <View style={styles.streakBadge}>
-              <AntDesign name="fire" size={14} color={KaizenTheme.redBright} />
-              <Text style={styles.streakCount}>12D</Text>
-            </View>
           </View>
 
           {/* Progress Bar */}
@@ -406,22 +402,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: KaizenTheme.textMuted,
     marginTop: 2,
-  },
-  streakBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: KaizenTheme.surfaceContainerLowest,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: KaizenTheme.border,
-  },
-  streakCount: {
-    color: KaizenTheme.redBright,
-    fontWeight: "700",
-    fontSize: 12,
   },
   progressTrack: {
     height: 4,

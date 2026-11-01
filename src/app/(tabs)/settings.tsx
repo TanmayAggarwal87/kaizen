@@ -43,9 +43,9 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Section 01: Reward Mode */}
+        {/* Allowance Mechanism */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>SECTION 01 // ALLOWANCE MECHANISM</Text>
+          <Text style={styles.sectionTitle}>ALLOWANCE MECHANISM</Text>
         </View>
 
         <View style={styles.cardGroup}>
@@ -108,17 +108,15 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Section 02: Task Defaults & Schedule */}
+        {/* Task Defaults & Schedule */}
         <View style={[styles.sectionHeaderRow, styles.topSpacer]}>
-          <Text style={styles.sectionTitle}>
-            SECTION 02 // TASK DEFAULTS & SCHEDULE
-          </Text>
+          <Text style={styles.sectionTitle}>SCHEDULE & DEFAULTS</Text>
         </View>
 
         <View style={styles.cardGroup}>
           <View style={styles.settingRow}>
             <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Default reward per Tasks</Text>
+              <Text style={styles.settingLabel}>Default reward per task</Text>
               <Text style={styles.settingSub}>Added to allowance balance per checked item</Text>
             </View>
             <View style={styles.stepper}>
@@ -166,11 +164,9 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Section 03: Permissions & Health Checklist */}
+        {/* Permissions & Health Checklist */}
         <View style={[styles.sectionHeaderRow, styles.topSpacer]}>
-          <Text style={styles.sectionTitle}>
-            SECTION 03 // PERMISSIONS & SYSTEM HEALTH
-          </Text>
+          <Text style={styles.sectionTitle}>PERMISSIONS & SYSTEM HEALTH</Text>
         </View>
 
         <View style={styles.cardGroup}>
@@ -233,7 +229,7 @@ export default function SettingsScreen() {
 
         {/* Diagnostic Utilities */}
         <View style={[styles.sectionHeaderRow, styles.topSpacer]}>
-          <Text style={styles.sectionTitle}>SECTION 04 // DIAGNOSTIC ALLOWANCE (TESTING)</Text>
+          <Text style={styles.sectionTitle}>DIAGNOSTIC TESTING</Text>
         </View>
 
         <View style={styles.debugButtonsRow}>

@@ -22,9 +22,17 @@ class KaizenBlockerModule : Module() {
       val store = BlockerStore.getInstance(context)
       store.setListener(object : BlockerStore.StateChangeListener {
         override fun onStateChanged() {
-          sendEvent("onStatusChanged", mapOf("remainingMs" to store.remainingMs))
+          try {
+            sendEvent("onStatusChanged", mapOf("remainingMs" to store.remainingMs))
+          } catch (_: Throwable) {}
         }
       })
+    }
+
+    OnDestroy {
+      try {
+        BlockerStore.getInstance(context).setListener(null)
+      } catch (_: Throwable) {}
     }
 
     Function("ping") {
@@ -33,6 +41,7 @@ class KaizenBlockerModule : Module() {
 
     Function("getStatus") {
       val store = BlockerStore.getInstance(context)
+      store.tickDrain()
       val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
       val isBatteryIgnored = pm?.isIgnoringBatteryOptimizations(context.packageName) ?: false
       val accessibilityOn = isAccessibilityServiceEnabled(context)

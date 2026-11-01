@@ -93,13 +93,6 @@ export default function PressureScreen() {
               </Text>
               <Text style={styles.metricLabel}>Balance Left</Text>
             </View>
-            <View style={styles.divider} />
-            <View style={styles.metricCol}>
-              <Text style={styles.metricVal}>
-                12<Text style={styles.metricSub}>d</Text>
-              </Text>
-              <Text style={styles.metricLabel}>Discipline</Text>
-            </View>
           </View>
         </View>
 

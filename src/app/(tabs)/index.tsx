@@ -133,47 +133,56 @@ export default function TodayScreen() {
           </View>
 
           <View style={styles.taskList}>
-            {tasks.map((task) => (
-              <Pressable
-                key={task.id}
-                style={({ pressed }) => [
-                  styles.taskRow,
-                  task.completed && styles.taskRowDone,
-                  pressed && styles.pressedState,
-                ]}
-                onPress={() => toggleTask(task.id)}
-              >
-                <View style={styles.taskLeft}>
-                  <View
-                    style={[
-                      styles.checkbox,
-                      task.completed && styles.checkboxChecked,
-                    ]}
-                  >
-                    {task.completed && (
-                      <AntDesign name="check" size={11} color={KaizenTheme.text} />
-                    )}
-                  </View>
-                  <View style={styles.taskTextCol}>
-                    <Text
+            {tasks.length === 0 ? (
+              <View style={styles.emptyTaskBox}>
+                <Text style={styles.emptyTaskTitle}>No Tasks Added Yet</Text>
+                <Text style={styles.emptyTaskSub}>
+                  Head over to the Tasks tab to add your daily tasks and earn screen time.
+                </Text>
+              </View>
+            ) : (
+              tasks.map((task) => (
+                <Pressable
+                  key={task.id}
+                  style={({ pressed }) => [
+                    styles.taskRow,
+                    task.completed && styles.taskRowDone,
+                    pressed && styles.pressedState,
+                  ]}
+                  onPress={() => toggleTask(task.id)}
+                >
+                  <View style={styles.taskLeft}>
+                    <View
                       style={[
-                        styles.taskTitle,
-                        task.completed && styles.taskTitleDone,
+                        styles.checkbox,
+                        task.completed && styles.checkboxChecked,
                       ]}
-                      numberOfLines={1}
                     >
-                      {task.title}
-                    </Text>
-                    <Text style={styles.taskCategory}>{task.category}</Text>
+                      {task.completed && (
+                        <AntDesign name="check" size={11} color={KaizenTheme.text} />
+                      )}
+                    </View>
+                    <View style={styles.taskTextCol}>
+                      <Text
+                        style={[
+                          styles.taskTitle,
+                          task.completed && styles.taskTitleDone,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {task.title}
+                      </Text>
+                      <Text style={styles.taskCategory}>{task.category}</Text>
+                    </View>
                   </View>
-                </View>
-                <View style={[styles.rewardPill, task.completed && styles.rewardPillDone]}>
-                  <Text style={[styles.rewardText, task.completed && styles.rewardTextDone]}>
-                    +{task.rewardMinutes}m
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
+                  <View style={[styles.rewardPill, task.completed && styles.rewardPillDone]}>
+                    <Text style={[styles.rewardText, task.completed && styles.rewardTextDone]}>
+                      +{task.rewardMinutes}m
+                    </Text>
+                  </View>
+                </Pressable>
+              ))
+            )}
           </View>
         </View>
       </ScrollView>
@@ -519,5 +528,26 @@ const styles = StyleSheet.create({
   },
   rewardTextDone: {
     color: KaizenTheme.textMuted,
+  },
+  emptyTaskBox: {
+    backgroundColor: KaizenTheme.surfaceContainerLow,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: KaizenTheme.borderSubtle,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTaskTitle: {
+    color: KaizenTheme.text,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  emptyTaskSub: {
+    color: KaizenTheme.textMuted,
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

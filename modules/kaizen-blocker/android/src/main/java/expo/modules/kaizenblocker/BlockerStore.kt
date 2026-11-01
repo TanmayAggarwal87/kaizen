@@ -68,14 +68,19 @@ class BlockerStore(context: Context) {
 
   fun startDraining(packageName: String) {
     synchronized(lock) {
-      drainCurrentActive(SystemClock.elapsedRealtime())
+      if (activeForegroundPackage == packageName && lastDrainTimestampMs > 0L) {
+        return
+      }
+      val now = SystemClock.elapsedRealtime()
+      drainCurrentActive(now)
       activeForegroundPackage = packageName
-      lastDrainTimestampMs = SystemClock.elapsedRealtime()
+      lastDrainTimestampMs = now
     }
   }
 
   fun stopDraining() {
     synchronized(lock) {
+      if (activeForegroundPackage == null) return
       drainCurrentActive(SystemClock.elapsedRealtime())
       activeForegroundPackage = null
       lastDrainTimestampMs = 0L
@@ -85,9 +90,7 @@ class BlockerStore(context: Context) {
   fun tickDrain(): Long {
     synchronized(lock) {
       if (activeForegroundPackage != null && lastDrainTimestampMs > 0L) {
-        val now = SystemClock.elapsedRealtime()
-        drainCurrentActive(now)
-        lastDrainTimestampMs = now
+        drainCurrentActive(SystemClock.elapsedRealtime())
       }
       return remainingMs
     }
@@ -96,6 +99,7 @@ class BlockerStore(context: Context) {
   private fun drainCurrentActive(now: Long) {
     if (activeForegroundPackage == null || lastDrainTimestampMs <= 0L) return
     val elapsed = (now - lastDrainTimestampMs).coerceAtLeast(0L)
+    lastDrainTimestampMs = now
     if (elapsed > 0) {
       val current = remainingMs
       val updated = (current - elapsed).coerceAtLeast(0L)
@@ -127,7 +131,11 @@ class BlockerStore(context: Context) {
   }
 
   private fun notifyChanged() {
-    listener?.onStateChanged()
+    try {
+      listener?.onStateChanged()
+    } catch (_: Throwable) {
+      // Safely ignore listener exceptions (e.g. background bridge suspended)
+    }
   }
 
   companion object {
