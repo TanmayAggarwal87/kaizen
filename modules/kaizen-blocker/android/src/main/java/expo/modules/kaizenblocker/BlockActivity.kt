@@ -62,7 +62,7 @@ class BlockActivity : Activity() {
 
     // Shield Emblem / Restricted Icon
     val emblem = TextView(this).apply {
-      text = "⛨"
+      text = ""
       textSize = 44f
       setTextColor(Color.parseColor("#C8372D"))
       gravity = Gravity.CENTER
